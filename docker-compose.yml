@@ -1,0 +1,139 @@
+---
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: ghcr.io/home-assistant/home-assistant:stable
+    volumes:
+      - ${DOCKER_DIR}/homeassistant/config:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
+    restart: unless-stopped
+    privileged: true
+    networks:
+      ha:
+        ipv4_address: 192.168.2.254
+      ha_sub:
+
+  mosquitto:
+    restart: unless-stopped
+    image: eclipse-mosquitto:latest
+    ports:
+      - 1883:1883
+      - 9001:9001
+    volumes:
+      - ${DOCKER_DIR}/mosquitto/config:/mosquitto/config  
+    networks:
+      ha_sub:
+
+
+  zigbee2mqtt:
+    container_name: zigbee2mqtt
+    image: koenkk/zigbee2mqtt:latest
+    ports:
+      - 9442:8080
+    volumes:
+      - ${DOCKER_DIR}/zigbee2mqtt/data:/app/data
+    devices:
+      # CC251
+      - /dev/serial/by-id/usb-Nabu_Casa_SkyConnect_v1.0_a0a4677ab418ec119bc6ee9a47486eb0-if00-port0:/dev/ttyACM0
+      # CC2530 / GBAN GB2530S
+      #- /dev/ttyUSB_cc2530:/dev/ttyACM0
+    restart: always
+      # network_mode: host
+    networks:
+      ha_sub:
+    depends_on:
+      - mosquitto
+
+  esphome:
+    container_name: esphome
+    image: esphome/esphome
+    ports:
+      - 6052:6052
+    volumes:
+      - ${DOCKER_DIR}/esphome/config:/config
+      - /etc/localtime:/etc/localtime:ro
+    restart: always
+    privileged: true
+    networks:
+      ha:
+        ipv4_address: 192.168.2.253
+    environment:
+      - ESPHOME_DASHBOARD_USE_PING=true
+
+  radicale:
+    image: tomsquest/docker-radicale:latest
+    container_name: radicale
+    ports:
+      - 5232:5232
+    init: true
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+      - CHOWN
+      - KILL
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          pids: 50
+    # healthcheck:
+    #   test: curl -f http://192.168.2.171:5232 || exit 1
+    #   interval: 30s
+    #   retries: 3
+    restart: unless-stopped
+    volumes:
+      - ${DOCKER_DIR}/radicale/data:/data
+      - ${DOCKER_DIR}/radicale/config:/config:ro
+    networks:
+      ha_sub:
+
+  whisper:
+    container_name: whisper
+    image: rhasspy/wyoming-whisper:latest
+    command: --model tiny-int8 --language de
+    privileged: true
+    restart: unless-stopped
+    environment:
+        - TZ=Europe/Berlin
+    volumes:
+      - ${DOCKER_DIR}/homeassistant/whisper/data:/data
+    ports:
+      - 10300:10300
+    networks:
+      ha_sub:
+
+  piper:
+    container_name: piper
+    image: rhasspy/wyoming-piper:latest
+    command: --voice  de_DE-thorsten-high
+    privileged: true
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Berlin
+    volumes:
+      - ${DOCKER_DIR}/homeassistant/piper/data:/data
+    ports:
+      - 10200:10200
+    networks:
+      ha_sub:
+
+
+
+networks:
+  ha:
+    driver: macvlan
+    driver_opts:
+      parent: ${INTERFACE_ID}
+    ipam:
+      config:
+        - subnet: "192.168.2.0/24"
+          ip_range: "192.168.2.254/32"
+          gateway: "192.168.2.1"
+  ha_sub:
+    driver: bridge
