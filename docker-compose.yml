@@ -35,7 +35,7 @@ services:
       - ${DOCKER_DIR}/zigbee2mqtt/data:/app/data
     devices:
       # CC251
-      - /dev/serial/by-id/usb-Nabu_Casa_SkyConnect_v1.0_a0a4677ab418ec119bc6ee9a47486eb0-if00-port0:/dev/ttyACM0
+      - $(ZIGBEE_STICK)
       # CC2530 / GBAN GB2530S
       #- /dev/ttyUSB_cc2530:/dev/ttyACM0
     restart: always
@@ -123,6 +123,27 @@ services:
     networks:
       ha_sub:
 
+  music-assistant-server:
+    image: ghcr.io/music-assistant/server:latest # <<< Desired release version here (or use beta to get the latest beta version)
+    container_name: music-assistant-server
+    restart: unless-stopped
+    # Network mode must be set to host for MA to work correctly
+    volumes:
+      - ${DOCKER_DIR}/music-assistant-server/data:/data/
+    # privileged caps (and security-opt) needed to mount smb folders within the container
+    cap_add:
+      - SYS_ADMIN
+      - DAC_READ_SEARCH
+    security_opt:
+      - apparmor:unconfined
+    environment:
+      # Provide logging level as environment variable.
+      # default=info, possible=(critical, error, warning, info, debug)
+      - LOG_LEVEL=info
+    networks:
+      ha:
+        ipv4_address: 192.168.2.253
+      ha_sub:
 
 
 networks:
