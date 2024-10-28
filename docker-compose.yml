@@ -34,10 +34,7 @@ services:
     volumes:
       - ${DOCKER_DIR}/zigbee2mqtt/data:/app/data
     devices:
-      # CC251
-      - $(ZIGBEE_STICK)
-      # CC2530 / GBAN GB2530S
-      #- /dev/ttyUSB_cc2530:/dev/ttyACM0
+      - $(ZIGBEE_STICK):/dev/ttyACM0s
     restart: always
       # network_mode: host
     networks:
@@ -59,7 +56,7 @@ services:
       ha:
         ipv4_address: 192.168.2.253
     environment:
-      - ESPHOME_DASHBOARD_USE_PING=true
+      - $(ESPHOME_DASHBOARD_USE_PING)
 
   radicale:
     image: tomsquest/docker-radicale:latest
@@ -100,7 +97,7 @@ services:
     privileged: true
     restart: unless-stopped
     environment:
-        - TZ=Europe/Berlin
+      - $(TZ)
     volumes:
       - ${DOCKER_DIR}/homeassistant/whisper/data:/data
     ports:
@@ -115,7 +112,7 @@ services:
     privileged: true
     restart: unless-stopped
     environment:
-      - TZ=Europe/Berlin
+      - $(TZ)
     volumes:
       - ${DOCKER_DIR}/homeassistant/piper/data:/data
     ports:
@@ -145,6 +142,22 @@ services:
         ipv4_address: 192.168.2.253
       ha_sub:
 
+
+  restic-backup:
+    build:
+      context: ./restic-backup
+      dockerfile: DOCKERFILE
+    image: restic-backup:dev
+    hostname: ubuntu-srv-1
+    volumes:
+      - /home/phillip/homelab/test:/data
+    environment:
+      - $(TZ)
+      - $(CRON_BACKUP)
+      - $(RESTIC_REPOSITORY)
+      - $(RESTIC_PASSWORD)
+      - $(RESTIC_TAG)
+      - $(RESTIC_COMPRESSION)
 
 networks:
   ha:
