@@ -1,0 +1,22 @@
+FROM alpine:3.19.1
+COPY --from=restic/restic:0.17.1 /usr/bin/restic /usr/bin/restic
+RUN chmod +x /usr/bin/restic
+RUN apk add --no-cache tzdata
+
+COPY ./entry.sh /usr/entry.sh
+RUN chmod +x /usr/entry.sh
+
+ENV CRON_BACKUP=""
+ENV TZ=""
+
+ENV RESTIC_REPOSITORY=""
+ENV RESTIC_PASSWORD=""
+ENV RESTIC_TAG=""
+ENV RESTIC_COMPRESSION="auto"
+ENV RESTIC_REST_USER=""
+ENV RESTIC_REST_PASSOWRD=""
+ENV AWS_SECRET_ACCESS_KEY=""
+ENV AWS_ACCESS_KEY_ID=""
+
+ENTRYPOINT [ "/usr/entry.sh" ]
+CMD [ "tail","-fn0","/var/log/restic.log" ]
