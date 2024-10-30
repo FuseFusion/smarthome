@@ -34,7 +34,7 @@ services:
     volumes:
       - ${DOCKER_DIR}/zigbee2mqtt/data:/app/data
     devices:
-      - $(ZIGBEE_STICK):/dev/ttyACM0s
+      - ${ZIGBEE_STICK}:/dev/ttyACM0s
     restart: always
       # network_mode: host
     networks:
@@ -56,7 +56,7 @@ services:
       ha:
         ipv4_address: 192.168.2.253
     environment:
-      - $(ESPHOME_DASHBOARD_USE_PING)
+      - ${ESPHOME_DASHBOARD_USE_PING}
 
   radicale:
     image: tomsquest/docker-radicale:latest
@@ -97,7 +97,7 @@ services:
     privileged: true
     restart: unless-stopped
     environment:
-      - $(TZ)
+      - TZ=${TZ}
     volumes:
       - ${DOCKER_DIR}/homeassistant/whisper/data:/data
     ports:
@@ -112,7 +112,7 @@ services:
     privileged: true
     restart: unless-stopped
     environment:
-      - $(TZ)
+      - TZ=${TZ}
     volumes:
       - ${DOCKER_DIR}/homeassistant/piper/data:/data
     ports:
@@ -150,14 +150,17 @@ services:
     image: restic-backup:dev
     hostname: ubuntu-srv-1
     volumes:
-      - /home/phillip/homelab/test:/data
+      - ${BACKUP_PATH}:${BACKUP_PATH}
     environment:
-      - $(TZ)
-      - $(CRON_BACKUP)
-      - $(RESTIC_REPOSITORY)
-      - $(RESTIC_PASSWORD)
-      - $(RESTIC_TAG)
-      - $(RESTIC_COMPRESSION)
+      - TZ=${TZ}
+      - CRON_BACKUP=${CRON_BACKUP}
+      - RESTIC_REPOSITORY=rest:http://192.168.2.99:8000
+      - RESTIC_PASSWORD=${RESTIC_PASSWORD}
+      - RESTIC_TAG=${RESTIC_TAG}
+      - RESTIC_COMPRESSION=${RESTIC_COMPRESSION}
+      - RESTIC_REST_USERNAME=${RESTIC_REST_USERNAME}
+      - RESTIC_REST_PASSWORD=${RESTIC_REST_PASSWORD}
+      - BACKUP_PATH=${BACKUP_PATH}
 
 networks:
   ha:
