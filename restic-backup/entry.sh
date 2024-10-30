@@ -1,18 +1,18 @@
 #!/bin/sh
 
-# backup command to be run
-COMMAND="restic backup /data/ --tag $RESTIC_TAG"
-
 # Crontab-Eintrag erstellen
-(crontab -l 2>/dev/null; echo "$CRON_TIME $COMMAND") | crontab -
-
+(crontab -l 2>/dev/null; echo "$CRON_BACKUP /usr/bin/backup") | crontab -
+echo "setting crontab with "$CRON_BACKUP /usr/bin/backup""
 
 # create log file
-touch /var/log/restic.log
+touch /var/log/backup.log
 
 # start cron
 crond
 
 echo "container started"
 
-exec "$@"
+# keep the container running, but allow it to be interruptable
+(crond -f) & CRONPID=$!
+trap "kill $CRONPID; wait $CRONPID" SIGINT SIGTERM
+wait $CRONPID
