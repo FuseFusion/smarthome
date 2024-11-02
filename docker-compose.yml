@@ -15,6 +15,7 @@ services:
       ha_sub:
 
   mosquitto:
+    container_name: mosquitto
     restart: unless-stopped
     image: eclipse-mosquitto:latest
     ports:
@@ -54,7 +55,7 @@ services:
     privileged: true
     networks:
       ha:
-        ipv4_address: 192.168.2.253
+        ipv4_address: 192.168.2.252
     environment:
       - ${ESPHOME_DASHBOARD_USE_PING}
 
@@ -99,7 +100,7 @@ services:
     environment:
       - TZ=${TZ}
     volumes:
-      - ${DOCKER_DIR}/homeassistant/whisper/data:/data
+      - ${DOCKER_DIR}/whisper/data:/data
     ports:
       - 10300:10300
     networks:
@@ -114,7 +115,7 @@ services:
     environment:
       - TZ=${TZ}
     volumes:
-      - ${DOCKER_DIR}/homeassistant/piper/data:/data
+      - ${DOCKER_DIR}/piper/data:/data
     ports:
       - 10200:10200
     networks:
@@ -144,17 +145,18 @@ services:
 
 
   restic-backup:
-    build:
-      context: ./restic-backup
-      dockerfile: DOCKERFILE
-    image: restic-backup:dev
+    # build:
+    #   context: ./restic-backup
+    #   dockerfile: DOCKERFILE
+    # image: restic-backup:dev
+    image: ghcr.io/fusefusion/restic-cron:latest
     hostname: ubuntu-srv-1
     volumes:
       - ${BACKUP_PATH}:${BACKUP_PATH}
     environment:
       - TZ=${TZ}
       - CRON_BACKUP=${CRON_BACKUP}
-      - RESTIC_REPOSITORY=rest:http://192.168.2.99:8000
+      - RESTIC_REPOSITORY=rest:${RESTIC_REPOSITORY}
       - RESTIC_PASSWORD=${RESTIC_PASSWORD}
       - RESTIC_TAG=${RESTIC_TAG}
       - RESTIC_COMPRESSION=${RESTIC_COMPRESSION}
