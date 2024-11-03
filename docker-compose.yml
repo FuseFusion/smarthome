@@ -11,7 +11,7 @@ services:
     privileged: true
     networks:
       ha:
-        ipv4_address: 192.168.2.254
+        ipv4_address: 192.168.2.77
       ha_sub:
 
   mosquitto:
@@ -22,10 +22,9 @@ services:
       - 1883:1883
       - 9001:9001
     volumes:
-      - ${DOCKER_DIR}/mosquitto/config:/mosquitto/config  
+      - ${DOCKER_DIR}/mosquitto/config:/mosquitto/config
     networks:
       ha_sub:
-
 
   zigbee2mqtt:
     container_name: zigbee2mqtt
@@ -35,11 +34,10 @@ services:
     volumes:
       - ${DOCKER_DIR}/zigbee2mqtt/data:/app/data
     devices:
-      - ${ZIGBEE_STICK}:/dev/ttyACM0s
-    restart: always
-      # network_mode: host
+      - ${ZIGBEE_STICK}:/dev/ttyACM0
+    restart: always # network_mode: host
     networks:
-      ha_sub:
+      ha_sub: null
     depends_on:
       - mosquitto
 
@@ -55,7 +53,7 @@ services:
     privileged: true
     networks:
       ha:
-        ipv4_address: 192.168.2.252
+        ipv4_address: 192.168.2.78
     environment:
       - ${ESPHOME_DASHBOARD_USE_PING}
 
@@ -140,9 +138,8 @@ services:
       - LOG_LEVEL=info
     networks:
       ha:
-        ipv4_address: 192.168.2.253
+        ipv4_address: 192.168.2.79
       ha_sub:
-
 
   restic-backup:
     # build:
@@ -163,7 +160,7 @@ services:
       - RESTIC_REST_USERNAME=${RESTIC_REST_USERNAME}
       - RESTIC_REST_PASSWORD=${RESTIC_REST_PASSWORD}
       - BACKUP_PATH=${BACKUP_PATH}
-
+      
 networks:
   ha:
     driver: macvlan
@@ -171,8 +168,8 @@ networks:
       parent: ${INTERFACE_ID}
     ipam:
       config:
-        - subnet: "192.168.2.0/24"
-          ip_range: "192.168.2.254/32"
-          gateway: "192.168.2.1"
+        - subnet: 192.168.2.0/24
+          ip_range: 192.168.2.254/32
+          gateway: 192.168.2.1
   ha_sub:
     driver: bridge
