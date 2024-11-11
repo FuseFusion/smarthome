@@ -7,6 +7,8 @@ services:
       - ${DOCKER_DIR}/homeassistant/config:/config
       - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
+    environment:
+      - TZ=${TZ}
     restart: unless-stopped
     privileged: true
     networks:
@@ -118,6 +120,24 @@ services:
       - 10200:10200
     networks:
       ha_sub:
+
+  openwakeword:
+    container_name: openwakeword
+    image: rhasspy/wyoming-openwakeword
+    volumes:
+      - ${DOCKER_DIR}/openwakeword/data:/data
+      - ${DOCKER_DIR}/openwakeword/custom:/custom
+      # - /etc/timezone:/etc/timezone:ro
+      # - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=${TZ}
+    command: --preload-model 'ok_nabu' --custom-model-dir /custom
+    restart: unless-stopped
+    ports:
+      - 10400:10400
+    networks:
+      ha_sub:
+
 
   music-assistant-server:
     image: ghcr.io/music-assistant/server:latest # <<< Desired release version here (or use beta to get the latest beta version)
