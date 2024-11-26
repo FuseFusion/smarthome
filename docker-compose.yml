@@ -192,10 +192,8 @@ services:
       - "--promscrape.config=/etc/prometheus/prometheus.yml"
       - "--remoteWrite.url=http://victoriametrics:8428/api/v1/write"
     restart: always
-    environment:
-      - TZ=${TZ}
     networks:
-      ha:
+      ha_sub:
       victora-metrics:
       
   victoriametrics:
@@ -211,8 +209,6 @@ services:
       - "--retentionPeriod=100y"
       - "--selfScrapeInterval=60s"
     restart: always
-    environment:
-      - TZ=${TZ}
     networks:
       victora-metrics:
   grafana:
@@ -230,8 +226,8 @@ services:
     container_name: vmbackup
     image: victoriametrics/vmbackup:stable
     user: "1000:1000"
-    # depends_on:
-    #   - "victoriametrics"
+     depends_on:
+       - "victoriametrics"
     volumes:
       - ${DOCKER_DIR}/victoriametrics/vmdata:/vmdata
       - ${DOCKER_DIR}/victoriametrics/backup:/backup
@@ -240,11 +236,11 @@ services:
       - "--snapshot.createURL=http://victoriametrics:8428/snapshot/create"
       - "--dst=fs:///backup/"
 
-  # restarter:
-  #    image: docker:cli
-  #    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
-  #    command: ["/bin/sh", "-c", "while true; do sleep 3600; docker restart vmbackup; done"]
-  #    restart: unless-stopped
+   restarter-vmbackup:
+      image: docker:cli
+      volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+      command: ["/bin/sh", "-c", "while true; do sleep 3600; docker restart vmbackup; done"]
+      restart: unless-stopped
       
 networks:
   ha:
