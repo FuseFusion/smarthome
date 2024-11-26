@@ -193,7 +193,7 @@ services:
       - "--remoteWrite.url=http://victoriametrics:8428/api/v1/write"
     restart: always
     networks:
-      smarthome_ha:
+      ha:
       victora-metrics:
       
   victoriametrics:
