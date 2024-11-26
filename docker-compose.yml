@@ -218,7 +218,7 @@ services:
     volumes:
       - ${DOCKER_DIR}/grafana:/var/lib/grafana
     ports:
-      - 3000:3000
+      - 3001:3000
     networks:
       victora-metrics:
   
