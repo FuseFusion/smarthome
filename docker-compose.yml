@@ -236,11 +236,11 @@ services:
       - "--snapshot.createURL=http://victoriametrics:8428/snapshot/create"
       - "--dst=fs:///backup/"
 
-   restarter:
-      image: docker:cli
-      volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
-      command: ["/bin/sh", "-c", "while true; do sleep 3600; docker restart vmbackup; done"]
-      restart: unless-stopped
+   # restarter:
+   #    image: docker:cli
+   #    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+   #    command: ["/bin/sh", "-c", "while true; do sleep 3600; docker restart vmbackup; done"]
+   #    restart: unless-stopped
       
 networks:
   ha:
