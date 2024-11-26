@@ -2,6 +2,7 @@
 services:
   homeassistant:
     container_name: homeassistant
+    hostname: homeassistant
     image: ghcr.io/home-assistant/home-assistant:stable
     volumes:
       - ${DOCKER_DIR}/homeassistant/config:/config
@@ -127,8 +128,6 @@ services:
     volumes:
       - ${DOCKER_DIR}/openwakeword/data:/data
       - ${DOCKER_DIR}/openwakeword/custom:/custom
-      # - /etc/timezone:/etc/timezone:ro
-      # - /etc/localtime:/etc/localtime:ro
     environment:
       - TZ=${TZ}
     command: --preload-model 'ok_nabu' --custom-model-dir /custom
@@ -162,10 +161,6 @@ services:
       ha_sub:
 
   restic-backup:
-    # build:
-    #   context: ./restic-backup
-    #   dockerfile: DOCKERFILE
-    # image: restic-backup:dev
     image: ghcr.io/fusefusion/restic-cron:latest
     hostname: ubuntu-srv-1
     volumes:
@@ -182,6 +177,70 @@ services:
       - BACKUP_PATH=${BACKUP_PATH}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+
+  vmagent:
+    container_name: vmagent
+    image: victoriametrics/vmagent:stable
+    depends_on:
+      - "victoriametrics"
+    ports:
+      - 8429:8429
+    volumes:
+      - ${DOCKER_DIR}/victoriametrics/vmagentdata:/vmagentdata
+      - ${DOCKER_DIR}/victoriametrics/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--promscrape.config=/etc/prometheus/prometheus.yml"
+      - "--remoteWrite.url=http://victoriametrics:8428/api/v1/write"
+    restart: always
+    networks:
+      smarthome_ha:
+      victora-metrics:
+      
+  victoriametrics:
+    container_name: victoriametrics
+    image: victoriametrics/victoria-metrics:stable
+    ports:
+      - 8428:8428
+    volumes:
+      - ${DOCKER_DIR}/victoriametrics/vmdata:/storage
+    command:
+      - "--storageDataPath=/storage"
+      - "--httpListenAddr=:8428"
+      - "--retentionPeriod=100y"
+      - "--selfScrapeInterval=60s"
+    restart: always
+    networks:
+      victora-metrics:
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:9.2.7
+    user: "1000:1000"
+    volumes:
+      - ${DOCKER_DIR}/grafana:/var/lib/grafana
+    ports:
+      - 3000:3000
+    networks:
+      victora-metrics:
+  
+  vmbackup:
+    container_name: vmbackup
+    image: victoriametrics/vmbackup:stable
+    user: "1000:1000"
+    # depends_on:
+    #   - "victoriametrics"
+    volumes:
+      - ./vmdata/victoriametrics/vmdata:/vmdata
+      - ./backup2:/backup
+    command:
+      - "--storageDataPath=/vmdata"
+      - "--snapshot.createURL=http://victoriametrics:8428/snapshot/create"
+      - "--dst=fs:///backup/"
+
+  restarter:
+     image: docker:cli
+     volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+     command: ["/bin/sh", "-c", "while true; do sleep 3600; docker restart vmbackup; done"]
+     restart: unless-stopped
       
 networks:
   ha:
@@ -195,3 +254,4 @@ networks:
           gateway: 192.168.2.1
   ha_sub:
     driver: bridge
+  victora-metrics:
