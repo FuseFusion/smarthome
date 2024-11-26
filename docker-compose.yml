@@ -38,7 +38,7 @@ services:
       - ${DOCKER_DIR}/zigbee2mqtt/data:/app/data
     devices:
       - ${ZIGBEE_STICK}:/dev/ttyACM0
-    restart: always # network_mode: host
+    restart: always
     networks:
       ha_sub: null
     depends_on:
@@ -229,8 +229,8 @@ services:
     # depends_on:
     #   - "victoriametrics"
     volumes:
-      - ./vmdata/victoriametrics/vmdata:/vmdata
-      - ./backup2:/backup
+      - ${DOCKER_DIR}/victoriametrics/vmdata:/vmdata
+      - ${DOCKER_DIR}/victoriametrics/backup:/backup
     command:
       - "--storageDataPath=/vmdata"
       - "--snapshot.createURL=http://victoriametrics:8428/snapshot/create"
