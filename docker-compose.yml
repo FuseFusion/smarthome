@@ -214,7 +214,7 @@ services:
   grafana:
     container_name: grafana
     image: grafana/grafana:9.2.7
-    user: "1000:1000"
+    user: ${USER_ID}
     volumes:
       - ${DOCKER_DIR}/grafana:/var/lib/grafana
     ports:
