@@ -241,7 +241,16 @@ services:
     volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
     command: ["/bin/sh", "-c", "while true; do sleep 3600; docker restart vmbackup; done"]
     restart: unless-stopped
-      
+    
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    ports:
+      - 80:3000
+    volumes:
+      - ${DOCKER_DIR}/homepage/config:/app/config # Make sure your local config directory exists
+      - /var/run/docker.sock:/var/run/docker.sock # (optional) For docker integrations
+
 networks:
   ha:
     driver: macvlan
