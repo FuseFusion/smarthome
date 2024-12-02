@@ -239,7 +239,7 @@ services:
   restarter-vmbackup:
     image: docker:cli
     volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
-    command: ["/bin/sh", "-c", "while true; do sleep 3600; docker restart vmbackup; done"]
+    command: ["/bin/sh", "-c", "while true; do sleep 86400; docker restart vmbackup; done"]
     restart: unless-stopped
     
   homepage:
