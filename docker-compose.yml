@@ -95,7 +95,7 @@ services:
   whisper:
     container_name: whisper
     image: rhasspy/wyoming-whisper:latest
-    command: --model tiny-int8 --language de
+    command: --model base-int8 --language de
     privileged: true
     restart: unless-stopped
     environment:
@@ -245,6 +245,7 @@ services:
   homepage:
     image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
+    restart: always
     ports:
       - 80:3000
     volumes:
