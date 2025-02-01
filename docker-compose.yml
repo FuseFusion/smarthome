@@ -162,7 +162,8 @@ services:
 
   restic-backup:
     image: ghcr.io/fusefusion/restic-cron:latest
-    hostname: ubuntu-srv-1
+    hostname: smarthome
+    restart: unless-stopped
     volumes:
       - ${BACKUP_PATH}:${BACKUP_PATH}
     environment:
