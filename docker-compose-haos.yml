@@ -1,0 +1,148 @@
+---
+services:
+  mosquitto:
+    container_name: mosquitto
+    restart: unless-stopped
+    image: eclipse-mosquitto:latest
+    ports:
+      - 1883:1883
+      - 9001:9001
+    volumes:
+      - ${DOCKER_DIR}/mosquitto/config:/mosquitto/config
+    networks:
+      ha_sub:
+
+  zigbee2mqtt:
+    container_name: zigbee2mqtt
+    image: koenkk/zigbee2mqtt:latest
+    ports:
+      - 9442:8080
+    volumes:
+      - ${DOCKER_DIR}/zigbee2mqtt/data:/app/data
+    devices:
+      - ${ZIGBEE_STICK}:/dev/ttyACM0
+    restart: always
+    networks:
+      ha_sub: null
+    depends_on:
+      - mosquitto
+
+  radicale:
+    image: tomsquest/docker-radicale:latest
+    container_name: radicale
+    ports:
+      - 5232:5232
+    init: true
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+      - CHOWN
+      - KILL
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          pids: 50
+    # healthcheck:
+    #   test: curl -f http://192.168.2.171:5232 || exit 1
+    #   interval: 30s
+    #   retries: 3
+    restart: unless-stopped
+    volumes:
+      - ${DOCKER_DIR}/radicale/data:/data
+      - ${DOCKER_DIR}/radicale/config:/config:ro
+    networks:
+      ha_sub:
+
+  restic-backup:
+    image: ghcr.io/fusefusion/restic-cron:latest
+    hostname: smarthome
+    restart: unless-stopped
+    volumes:
+      - ${BACKUP_PATH}:${BACKUP_PATH}
+    environment:
+      - TZ=${TZ}
+      - CRON_BACKUP=${CRON_BACKUP}
+      - RESTIC_REPOSITORY=${RESTIC_REPOSITORY}
+      - RESTIC_PASSWORD=${RESTIC_PASSWORD}
+      - RESTIC_TAG=${RESTIC_TAG}
+      - RESTIC_COMPRESSION=${RESTIC_COMPRESSION}
+      - RESTIC_REST_USERNAME=${RESTIC_REST_USERNAME}
+      - RESTIC_REST_PASSWORD=${RESTIC_REST_PASSWORD}
+      - BACKUP_PATH=${BACKUP_PATH}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+
+  vmagent:
+    container_name: vmagent
+    image: victoriametrics/vmagent:stable
+    depends_on:
+      - "victoriametrics"
+    ports:
+      - 8429:8429
+    volumes:
+      - ${DOCKER_DIR}/victoriametrics/vmagentdata:/vmagentdata
+      - ${DOCKER_DIR}/victoriametrics/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--promscrape.config=/etc/prometheus/prometheus.yml"
+      - "--remoteWrite.url=http://victoriametrics:8428/api/v1/write"
+    restart: always
+    networks:
+      ha_sub:
+      victora-metrics:
+      
+  victoriametrics:
+    container_name: victoriametrics
+    image: victoriametrics/victoria-metrics:stable
+    ports:
+      - 8428:8428
+    volumes:
+      - ${DOCKER_DIR}/victoriametrics/vmdata:/storage
+    command:
+      - "--storageDataPath=/storage"
+      - "--httpListenAddr=:8428"
+      - "--retentionPeriod=100y"
+      - "--selfScrapeInterval=60s"
+    restart: always
+    networks:
+      victora-metrics:
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:9.2.7
+    user: ${USER_ID}
+    volumes:
+      - ${DOCKER_DIR}/grafana:/var/lib/grafana
+    ports:
+      - 3001:3000
+    networks:
+      victora-metrics:
+  
+  vmbackup:
+    container_name: vmbackup
+    image: victoriametrics/vmbackup:stable
+    user: "1000:1000"
+    depends_on:
+      - "victoriametrics"
+    volumes:
+      - ${DOCKER_DIR}/victoriametrics/vmdata:/vmdata
+      - ${DOCKER_DIR}/victoriametrics/backup:/backup
+    command:
+      - "--storageDataPath=/vmdata"
+      - "--snapshot.createURL=http://victoriametrics:8428/snapshot/create"
+      - "--dst=fs:///backup/"
+
+  restarter-vmbackup:
+    image: docker:cli
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    command: ["/bin/sh", "-c", "while true; do sleep 86400; docker restart vmbackup; done"]
+    restart: unless-stopped
+
+networks:
+  ha_sub:
+    driver: bridge
+  victora-metrics:
